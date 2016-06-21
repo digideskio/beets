@@ -1073,15 +1073,24 @@ class Album(LibModel):
 
         # Rectify the image extension based on its magic bytes. Mostly relevant
         # for png with jpg extension.
-        real_ext = imghdr.what(syspath(image))
-        real_ext = bytestring_path(self._IMGHDR_MAP.get(real_ext, real_ext))
+        try:
+            real_ext = imghdr.what(syspath(image))
+        except IOError:
+            real_ext = None
         _, ext = os.path.splitext(image)
-
-        if real_ext != ext:
-            if ext in self._IMGHDR_MAP and self._IMGHDR_MAP[ext] == real_ext:
-                real_ext = ext  # do not rename .jpeg -> jpg
-            else:
-                pass  # is there a way to debug-log here?
+        if real_ext is not None:
+            real_ext = bytestring_path(
+                self._IMGHDR_MAP.get(real_ext, real_ext))
+            if real_ext != ext:
+                if ext in self._IMGHDR_MAP and \
+                        self._IMGHDR_MAP[ext] == real_ext:
+                    real_ext = ext  # do not rename .jpeg -> jpg
+                else:
+                    pass  # is there a way to debug-log here?
+        else:
+            # Handle unknown image type gracefully. Relevant for tests that
+            # operate on empty or non-existent files.
+            real_ext = ext
         dest = os.path.join(item_dir, subpath + real_ext)
 
         return bytestring_path(dest)
