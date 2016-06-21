@@ -22,6 +22,7 @@ import sys
 import unicodedata
 import time
 import re
+import imghdr
 from unidecode import unidecode
 
 from beets import logging
@@ -1048,6 +1049,8 @@ class Album(LibModel):
 
         return total
 
+    _IMGHDR_MAP = {'jpeg': 'jpg'}
+
     def art_destination(self, image, item_dir=None):
         """Returns a path to the destination for the album art image
         for the album. `image` is the path of the image that will be
@@ -1068,8 +1071,18 @@ class Album(LibModel):
                                      replacements=self._db.replacements)
         subpath = bytestring_path(subpath)
 
+        # Rectify the image extension based on its magic bytes. Mostly relevant
+        # for png with jpg extension.
+        real_ext = imghdr.what(syspath(image))
+        real_ext = bytestring_path(self._IMGHDR_MAP.get(real_ext, real_ext))
         _, ext = os.path.splitext(image)
-        dest = os.path.join(item_dir, subpath + ext)
+
+        if real_ext != ext:
+            if ext in self._IMGHDR_MAP and self._IMGHDR_MAP[ext] == real_ext:
+                real_ext = ext  # do not rename .jpeg -> jpg
+            else:
+                pass  # is there a way to debug-log here?
+        dest = os.path.join(item_dir, subpath + real_ext)
 
         return bytestring_path(dest)
 

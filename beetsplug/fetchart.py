@@ -238,7 +238,10 @@ class RemoteArtSource(ArtSource):
                     candidate.path = None
                     return
 
-                # Generate a temporary file with the correct extension.
+                # Generate a temporary file and guess the extension based on
+                # the Content-Type header. This may still be wrong for badly
+                # configured servers and will be rectified when copying
+                # the artwork into othe library.
                 with NamedTemporaryFile(suffix=b'.' + CONTENT_TYPES[ct][0],
                                         delete=False) as fh:
                     for chunk in resp.iter_content(chunk_size=1024):
